@@ -67,12 +67,19 @@ wake_ele => pointer_to_wake_ele(ele, ds_wake)
 if (.not. associated (wake_ele) .or. (.not. bmad_com%sr_wakes_on .and. .not. bmad_com%lr_wakes_on)) then
 
   if (bmad_com%radiation_damping_on .or. bmad_com%radiation_fluctuations_on) call radiation_map_setup(ele, err_flag)
+  ele%ix_pointer = 1  ! P.Murat: the structure definition claims it is not used. Use as a print ON flag
   !$OMP parallel do if (thread_safe)
   do j = 1, size(bunch%particle)
     if (bunch%particle(j)%state /= alive$) cycle
+    ! P.Murat: save index of the particle, bmad_struct.f90 claims that ix_pointer is not used,
+    !          but we need smth thread-safe
+    bunch%particle(j)%ix_user = j;
+    bunch%particle(j)%ix_turn = bunch%ix_turn;
+    ! write (*, '(i5)') bunch%particle(j)%ix_user  ! P.Murat 
     call track1 (bunch%particle(j), ele, branch%param, bunch%particle(j))
   enddo
   !$OMP end parallel do
+  ele%ix_pointer = 0               ! P.Murat: back to default
 
   bunch%charge_live = sum (bunch%particle(:)%charge, mask = (bunch%particle(:)%state == alive$))
   return
@@ -84,12 +91,12 @@ endif
 ! For zero length elements just track the element.
 
 if (ele%value(l$) == 0) then
-  if (bmad_com%radiation_damping_on .or. bmad_com%radiation_fluctuations_on) call radiation_map_setup(ele, err_flag)
+   if (bmad_com%radiation_damping_on .or. bmad_com%radiation_fluctuations_on) call radiation_map_setup(ele, err_flag)
   !$OMP parallel do if (thread_safe)
-  do j = 1, size(bunch%particle)
-    if (bunch%particle(j)%state /= alive$) cycle
-    call track1 (bunch%particle(j), ele, branch%param, bunch%particle(j))
-  enddo
+   do j = 1, size(bunch%particle)
+      if (bunch%particle(j)%state /= alive$) cycle
+      call track1 (bunch%particle(j), ele, branch%param, bunch%particle(j))
+   enddo
   !$OMP end parallel do
 
 else

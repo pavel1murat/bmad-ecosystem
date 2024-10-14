@@ -226,7 +226,18 @@ case (bmad_standard$)
     call track1_bmad_photon (end_orb, ele, param, err)
   else
     call track1_bmad (end_orb, ele, param, err, track, mat6 = ele%mat6, make_matrix = make_map1)
-
+    ! P.Murat: conditionally, print the particle coordinates, start_orb%ix_user : particle number in the bunch, > 0
+    !          for the first turn and first element print start and end points, in all rest cases - only end
+    !          because the end of one element means the start of the next one
+    if (start_orb%ix_user > 0) then
+       if ((start_orb%ix_turn == 0) .and. (ele%ix_ele == 1)) then 
+          write (*, '(i5, i5, i4, 1x, a6, 9es16.8)') start_orb%ix_turn, start_orb%ix_user, ele%ix_ele, ele%name, &
+               start2_orb%vec, start2_orb%p0c*(1+start2_orb%vec(6)), start2_orb%s, start2_orb%t
+       endif
+       
+       write (*, '(i5, i5, i4, 1x, a6, 9es16.8)') start_orb%ix_turn, start_orb%ix_user, ele%ix_ele, ele%name, &
+            end_orb%vec   , end_orb%p0c*(1+end_orb%vec(6))         , end_orb%s   , end_orb%t
+    endif
     select case (ele%key)
     case (beambeam$);  do_spin_tracking = .false.
     end select
